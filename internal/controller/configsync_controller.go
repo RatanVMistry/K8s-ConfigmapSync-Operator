@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -25,6 +26,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	appsv1 "github.com/RatanVMistry/K8s-ConfigmapSync-Operator/api/v1"
+	// "github.com/onsi/ginkgo/v2/types"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ConfigSyncReconciler reconciles a ConfigSync object
@@ -48,6 +53,57 @@ type ConfigSyncReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.19.1/pkg/reconcile
 func (r *ConfigSyncReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
+	ctx = context.Background()
+	log := log.FromContext(ctx)
+
+	// Fetch the ConfigSync instance
+	configSync := &appsv1.ConfigSync{}
+	if err := r.Get(ctx, req.NamespacedName, configSync); err != nil {
+		log.Error(err, "unable to fetch ConfigSync")
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	//Fetch the source configmap
+	sourceConfigMap := &corev1.ConfigMap{}
+	sourceConfigMapName := types.NamespacedName{
+		Namespace: configSync.Spec.SourceNamespace,
+		Name:      configSync.Spec.ConfigMapName,
+	}
+	if err := r.Get(ctx, sourceConfigMapName, sourceConfigMap); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// Create or Update the destination configmap in the destination namespace
+	destinationConfigMap := &corev1.ConfigMap{}
+	destinationConfigMapName := types.NamespacedName{
+		Namespace: configSync.Spec.DestinationNamespace,
+		Name:      configSync.Spec.ConfigMapName,
+	}
+	if err := r.Get(ctx, destinationConfigMapName, destinationConfigMap); err != nil {
+		if apierrors.IsNotFound(err) {
+			log.Info("Creating ConfigMap in destination namespace", "namespace", configSync.Spec.DestinationNamespace, "name", configSync.Spec.ConfigMapName)
+			destinationConfigMap = &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: configSync.Spec.DestinationNamespace,
+					Name:      configSync.Spec.ConfigMapName,
+				},
+				Data:       sourceConfigMap.Data,
+			}
+			destinationConfigMap.Namespace = configSync.Spec.DestinationNamespace
+			destinationConfigMap.Name = configSync.Spec.ConfigMapName
+			if err := r.Create(ctx, destinationConfigMap); err != nil {
+				return ctrl.Result{}, err
+			}
+		} else {
+			return ctrl.Result{}, err
+		}
+	} else {
+		log.Info("Updating ConfigMap in destination namespace", "namespace", configSync.Spec.DestinationNamespace, "name", configSync.Spec.ConfigMapName)
+		destinationConfigMap.Data = sourceConfigMap.Data
+			if err := r.Update(ctx, destinationConfigMap); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
 
 	// TODO(user): your logic here
 
