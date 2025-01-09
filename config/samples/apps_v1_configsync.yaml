@@ -1,0 +1,9 @@
+apiVersion: apps.my.domain/v1
+kind: ConfigSync
+metadata:
+  labels:
+    app.kubernetes.io/name: configmapsyncoperator
+    app.kubernetes.io/managed-by: kustomize
+  name: configsync-sample
+spec:
+  # TODO(user): Add fields here
