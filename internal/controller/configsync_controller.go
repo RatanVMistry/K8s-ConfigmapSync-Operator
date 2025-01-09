@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -28,8 +29,8 @@ import (
 	appsv1 "github.com/RatanVMistry/K8s-ConfigmapSync-Operator/api/v1"
 	// "github.com/onsi/ginkgo/v2/types"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // ConfigSyncReconciler reconciles a ConfigSync object
@@ -63,7 +64,7 @@ func (r *ConfigSyncReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	//Fetch the source configmap
+	// Fetch the source configmap
 	sourceConfigMap := &corev1.ConfigMap{}
 	sourceConfigMapName := types.NamespacedName{
 		Namespace: configSync.Spec.SourceNamespace,
@@ -87,7 +88,7 @@ func (r *ConfigSyncReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 					Namespace: configSync.Spec.DestinationNamespace,
 					Name:      configSync.Spec.ConfigMapName,
 				},
-				Data:       sourceConfigMap.Data,
+				Data: sourceConfigMap.Data,
 			}
 			destinationConfigMap.Namespace = configSync.Spec.DestinationNamespace
 			destinationConfigMap.Name = configSync.Spec.ConfigMapName
@@ -100,10 +101,10 @@ func (r *ConfigSyncReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	} else {
 		log.Info("Updating ConfigMap in destination namespace", "namespace", configSync.Spec.DestinationNamespace, "name", configSync.Spec.ConfigMapName)
 		destinationConfigMap.Data = sourceConfigMap.Data
-			if err := r.Update(ctx, destinationConfigMap); err != nil {
-				return ctrl.Result{}, err
-			}
+		if err := r.Update(ctx, destinationConfigMap); err != nil {
+			return ctrl.Result{}, err
 		}
+	}
 
 	// TODO(user): your logic here
 
