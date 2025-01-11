@@ -91,7 +91,6 @@ func (r *ConfigSyncReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return ctrl.Result{}, nil
 }
 
-
 func (r *ConfigSyncReconciler) syncConfigMap(ctx context.Context, name string, sourceNamespace string, destinationNamespaces []string) error {
 	// Fetch the source configmap
 	log := log.FromContext(ctx)
