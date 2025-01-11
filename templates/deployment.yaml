@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: configmapsync-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: configmapsync-operator
+  template:
+    metadata:
+      labels:
+        app: configmapsync-operator
+    spec:
+      containers:
+      - name: configmapsync-operator
+        image: ratmistr/configmapsync-operator:latest # Replace with your image location

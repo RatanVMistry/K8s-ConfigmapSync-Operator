@@ -39,26 +39,17 @@ spec:
           spec:
             description: ConfigSyncSpec defines the desired state of ConfigSync.
             properties:
-              configMapNames:
-                items:
-                  type: string
-                type: array
-              destinationNamespaces:
-                items:
-                  type: string
-                type: array
-              secretNames:
-                items:
-                  type: string
-                type: array
+              configMapName:
+                type: string
+              destinationNamespace:
+                type: string
               sourceNamespace:
                 description: Foo is an example field of ConfigSync. Edit configsync_types.go
                   to remove/update
                 type: string
             required:
-            - configMapNames
-            - destinationNamespaces
-            - secretNames
+            - configMapName
+            - destinationNamespace
             - sourceNamespace
             type: object
           status:

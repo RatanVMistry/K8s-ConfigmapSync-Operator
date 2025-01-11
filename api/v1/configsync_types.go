@@ -29,9 +29,10 @@ type ConfigSyncSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of ConfigSync. Edit configsync_types.go to remove/update
-	SourceNamespace      string `json:"sourceNamespace"`
-	DestinationNamespace string `json:"destinationNamespace"`
-	ConfigMapName        string `json:"configMapName"`
+	SourceNamespace       string   `json:"sourceNamespace"`
+	DestinationNamespaces []string `json:"destinationNamespaces"`
+	ConfigMapNames        []string `json:"configMapNames"`
+	SecretNames           []string `json:"secretNames"`
 }
 
 // ConfigSyncStatus defines the observed state of ConfigSync.

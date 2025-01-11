@@ -60,55 +60,119 @@ func (r *ConfigSyncReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// Fetch the ConfigSync instance
 	configSync := &appsv1.ConfigSync{}
 	if err := r.Get(ctx, req.NamespacedName, configSync); err != nil {
+		if apierrors.IsNotFound(err) {
+			log.Info("ConfigSync resource not found. Ignoring since object must be deleted")
+			return ctrl.Result{}, nil
+		}
 		log.Error(err, "unable to fetch ConfigSync")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	// sync the configmaps
+	if len(configSync.Spec.ConfigMapNames) > 0 {
+		for _, configMapName := range configSync.Spec.ConfigMapNames {
+			if err := r.syncConfigMap(ctx, configMapName, configSync.Spec.SourceNamespace, configSync.Spec.DestinationNamespaces); err != nil {
+				log.Error(err, "Failed to sync ConfigMap", "configMapName", configMapName)
+				return ctrl.Result{}, err
+			}
+		}
+	}
+
+	// sync the secrets
+	if len(configSync.Spec.SecretNames) > 0 {
+		for _, secretName := range configSync.Spec.SecretNames {
+			if err := r.syncSecret(ctx, secretName, configSync.Spec.SourceNamespace, configSync.Spec.DestinationNamespaces); err != nil {
+				log.Error(err, "Failed to sync Secret", "secretName", secretName)
+				return ctrl.Result{}, err
+			}
+		}
+	}
+	log.Info("ConfigSync reconciled")
+	return ctrl.Result{}, nil
+}
+
+
+func (r *ConfigSyncReconciler) syncConfigMap(ctx context.Context, name string, sourceNamespace string, destinationNamespaces []string) error {
 	// Fetch the source configmap
+	log := log.FromContext(ctx)
+
 	sourceConfigMap := &corev1.ConfigMap{}
 	sourceConfigMapName := types.NamespacedName{
-		Namespace: configSync.Spec.SourceNamespace,
-		Name:      configSync.Spec.ConfigMapName,
+		Namespace: sourceNamespace,
+		Name:      name,
 	}
 	if err := r.Get(ctx, sourceConfigMapName, sourceConfigMap); err != nil {
-		return ctrl.Result{}, err
+		if apierrors.IsNotFound(err) {
+			log.Error(err, "Source ConfigMap not found", "namespace", sourceNamespace, "name", name)
+			return nil
+		}
+
+		return err
 	}
 
 	// Create or Update the destination configmap in the destination namespace
-	destinationConfigMap := &corev1.ConfigMap{}
-	destinationConfigMapName := types.NamespacedName{
-		Namespace: configSync.Spec.DestinationNamespace,
-		Name:      configSync.Spec.ConfigMapName,
+	for _, destinationNamespace := range destinationNamespaces {
+		destinationConfigMap := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: destinationNamespace,
+				Name:      name,
+			},
+		}
+		_, err := ctrl.CreateOrUpdate(ctx, r.Client, destinationConfigMap, func() error {
+			destinationConfigMap.Data = sourceConfigMap.Data
+			destinationConfigMap.Labels = sourceConfigMap.Labels
+			return nil
+		})
+		if err != nil {
+			log.Error(err, "Failed to sync ConfigMap", "namespace", destinationNamespace, "name", name)
+			return err
+		}
+		log.Info("ConfigMap synced", "namespace", destinationNamespace, "name", name)
 	}
-	if err := r.Get(ctx, destinationConfigMapName, destinationConfigMap); err != nil {
+
+	return nil
+}
+
+func (r *ConfigSyncReconciler) syncSecret(ctx context.Context, name string, sourceNamespace string, destinationNamespaces []string) error {
+	// Fetch the source secret
+	log := log.FromContext(ctx)
+
+	sourceSecret := &corev1.Secret{}
+	sourceSecretName := types.NamespacedName{
+		Namespace: sourceNamespace,
+		Name:      name,
+	}
+	if err := r.Get(ctx, sourceSecretName, sourceSecret); err != nil {
 		if apierrors.IsNotFound(err) {
-			log.Info("Creating ConfigMap in destination namespace", "namespace", configSync.Spec.DestinationNamespace, "name", configSync.Spec.ConfigMapName)
-			destinationConfigMap = &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: configSync.Spec.DestinationNamespace,
-					Name:      configSync.Spec.ConfigMapName,
-				},
-				Data: sourceConfigMap.Data,
-			}
-			destinationConfigMap.Namespace = configSync.Spec.DestinationNamespace
-			destinationConfigMap.Name = configSync.Spec.ConfigMapName
-			if err := r.Create(ctx, destinationConfigMap); err != nil {
-				return ctrl.Result{}, err
-			}
-		} else {
-			return ctrl.Result{}, err
+			log.Error(err, "Source Secret not found", "namespace", sourceNamespace, "name", name)
+			return nil
 		}
-	} else {
-		log.Info("Updating ConfigMap in destination namespace", "namespace", configSync.Spec.DestinationNamespace, "name", configSync.Spec.ConfigMapName)
-		destinationConfigMap.Data = sourceConfigMap.Data
-		if err := r.Update(ctx, destinationConfigMap); err != nil {
-			return ctrl.Result{}, err
-		}
+
+		return err
 	}
 
-	// TODO(user): your logic here
+	// Create or Update the destination secret in the destination namespace
+	for _, destinationNamespace := range destinationNamespaces {
+		destinationSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: destinationNamespace,
+				Name:      name,
+			},
+		}
+		_, err := ctrl.CreateOrUpdate(ctx, r.Client, destinationSecret, func() error {
+			destinationSecret.Data = sourceSecret.Data
+			destinationSecret.Type = sourceSecret.Type
+			destinationSecret.Labels = sourceSecret.Labels
+			return nil
+		})
+		if err != nil {
+			log.Error(err, "Failed to sync Secret", "namespace", destinationNamespace, "name", name)
+			return err
+		}
+		log.Info("Secret synced", "namespace", destinationNamespace, "name", name)
+	}
 
-	return ctrl.Result{}, nil
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

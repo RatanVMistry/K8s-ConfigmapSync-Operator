@@ -1,0 +1,23 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: configsync-reader
+rules:
+  - apiGroups:
+      - apps.my.domain
+    resources:
+      - configsyncs
+    verbs:
+      - list
+      - watch
+      - get
+  - apiGroups:
+      - "" # Core API group for ConfigMaps
+    resources:
+      - configmaps
+      - secrets
+    verbs:
+      - list
+      - get
+      - create
+      - update
