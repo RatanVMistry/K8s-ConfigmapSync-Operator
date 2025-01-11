@@ -71,6 +71,7 @@ func (r *ConfigSyncReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// sync the configmaps
 	if len(configSync.Spec.ConfigMapNames) > 0 {
 		for _, configMapName := range configSync.Spec.ConfigMapNames {
+			log.Info("Syncing ConfigMap", "configMapName", configMapName)
 			if err := r.syncConfigMap(ctx, configMapName, configSync.Spec.SourceNamespace, configSync.Spec.DestinationNamespaces); err != nil {
 				log.Error(err, "Failed to sync ConfigMap", "configMapName", configMapName)
 				return ctrl.Result{}, err
@@ -101,6 +102,7 @@ func (r *ConfigSyncReconciler) syncConfigMap(ctx context.Context, name string, s
 		Name:      name,
 	}
 	if err := r.Get(ctx, sourceConfigMapName, sourceConfigMap); err != nil {
+		log.Info("Source ConfigMap not found", "namespace", sourceNamespace, "name", name)
 		if apierrors.IsNotFound(err) {
 			log.Error(err, "Source ConfigMap not found", "namespace", sourceNamespace, "name", name)
 			return nil

@@ -1,8 +1,0 @@
-apiVersion: apps.my.domain/v1
-kind: ConfigSync
-metadata:
-  name: example-configmapsync
-spec:
-  sourceNamespace: "default"
-  destinationNamespace: "test"
-  configMapName: "dummy-configmap"

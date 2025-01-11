@@ -1,0 +1,13 @@
+apiVersion: apps.my.domain/v1
+kind: ConfigSync
+metadata:
+  name: example-configsync-only-secrets
+spec:
+  sourceNamespace: "default"
+  destinationNamespaces:
+    - "test4"
+  secretNames:
+    - "database-secret"
+    - "api-keys-secret"
+    - "app-credentials-secret"
+  configMapNames: []

@@ -4,7 +4,7 @@ metadata:
   name: configsync-reader-binding
 subjects:
   - kind: ServiceAccount
-    name: default
+    name: controller-manager
     namespace: default
 roleRef:
   kind: ClusterRole

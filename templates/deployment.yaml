@@ -15,3 +15,5 @@ spec:
       containers:
       - name: configmapsync-operator
         image: ratmistr/configmapsync-operator:latest # Replace with your image location
+        imagePullPolicy: Always
+      serviceAccountName: controller-manager

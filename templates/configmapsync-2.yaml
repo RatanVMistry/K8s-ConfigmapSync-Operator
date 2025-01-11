@@ -1,0 +1,13 @@
+apiVersion: apps.my.domain/v1
+kind: ConfigSync
+metadata:
+  name: example-configsync-only-configmaps
+spec:
+  sourceNamespace: "default"
+  destinationNamespaces:
+    - "test3"
+  configMapNames:
+    - "app-settings-configmap"
+    - "dummy-configmap"
+    - "feature-flags-configmap"
+  secretNames: []

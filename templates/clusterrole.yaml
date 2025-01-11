@@ -21,3 +21,6 @@ rules:
       - get
       - create
       - update
+      - delete
+      - watch
+      - patch
