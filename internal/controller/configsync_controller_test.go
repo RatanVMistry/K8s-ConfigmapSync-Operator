@@ -51,6 +51,12 @@ var _ = Describe("ConfigSync Controller", func() {
 						Name:      resourceName,
 						Namespace: "default",
 					},
+					Spec: appsv1.ConfigSyncSpec{
+						SourceNamespace:       "default",
+						DestinationNamespaces: []string{"test-namespace"},
+						ConfigMapNames:        []string{"test-configmap"},
+						SecretNames:           []string{"test-secret"},
+					},
 					// TODO(user): Specify other spec details if needed.
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
@@ -79,6 +85,11 @@ var _ = Describe("ConfigSync Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 			// TODO(user): Add more specific assertions depending on your controller's reconciliation logic.
 			// Example: If you expect a certain status condition after reconciliation, verify it here.
+			fetchedResources := &appsv1.ConfigSync{}
+			Expect(k8sClient.Get(ctx, typeNamespacedName, fetchedResources)).To(Succeed())
+
+			// Add more assertions as needed.
+			Expect(fetchedResources.Status.LastSyncTime).NotTo(BeNil())
 		})
 	})
 })
